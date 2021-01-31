@@ -1,8 +1,9 @@
 import React from "react";
+import axios from "axios";
 import { Button, Container, CardColumns } from "react-bootstrap";
 import { initialState, reducer } from "./reducer";
 
-import { AddArticleModal, Cards, FullPost } from "./components";
+import { AddArticleModal, Cards, EditArticle, FullPost } from "./components";
 
 export const StateContext = React.createContext();
 
@@ -14,23 +15,47 @@ function App() {
       type: "OPEN_MODAL",
       payload: { name, state }
     })
-  }
+    if (name === "fullPost") {
+      axios.get(`https://5c3755177820ff0014d92711.mockapi.io/articles/${state.id}/comments`)
+        .then(({ data }) => {
+          if (data) { dispatch({ type: "GET_COMMENTS", payload: data }) }
+        })
+    }
+    if (name === "editArticle") {
+      dispatch({ type: "CLOSE_MODAL1", payload: "fullPost" })
+    }
+  };
 
   const addArticle = (data) => {
-    dispatch({
-      type: "ADD_ARTICLE",
-      payload: data
-    })
+    axios.post("https://5c3755177820ff0014d92711.mockapi.io/articles", data)
+      .finally(dispatch({
+        type: "ADD_ARTICLE",
+        payload: data
+      }))
+  };
+
+  const editArticle = (data) => {
+    axios.post("https://5c3755177820ff0014d92711.mockapi.io/articles", data)
+      .finally(dispatch({
+        type: "ADD_ARTICLE",
+        payload: data
+      }))
   };
 
   const removeArticle = (id) => {
-    dispatch({
-      type: "REMOVE_ARTICLE",
-      payload: id,
-    })
+    if (window.confirm("А вдруг кто-то старался?")) {
+      axios.delete(`https://5c3755177820ff0014d92711.mockapi.io/articles/${id}`)
+      dispatch({
+        type: "REMOVE_ARTICLE",
+        payload: id,
+      });
+    }
   };
 
-  console.log(state);
+  React.useEffect(() => {
+    axios.get("https://5c3755177820ff0014d92711.mockapi.io/articles")
+      .then(({ data }) => dispatch({ type: "GET_ARTICLES", payload: data }));
+  }, []);
 
   return (
     <div className="App">
@@ -50,7 +75,8 @@ function App() {
 
         <StateContext.Provider value={[state, dispatch]}>
           <AddArticleModal addArticle={addArticle} />
-          <FullPost />
+          <FullPost openModal={openModal} />
+          <EditArticle editArticle={editArticle} />
         </StateContext.Provider>
       </Container>
     </div>
